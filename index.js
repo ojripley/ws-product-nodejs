@@ -1,15 +1,18 @@
+// imports env vars
 require('dotenv').config();
+
 const express = require('express');
 const pg = require('pg');
 const { apiLimiter} = require('./limiters/apiLimiter');
-
-apiLimiter.defaultLimit = 10;
-apiLimiter.defaultPeriod = 20000;
 
 const app = express();
 // configs come from standard PostgreSQL env vars
 // https://www.postgresql.org/docs/9.6/static/libpq-envars.html
 const pool = new pg.Pool();
+
+// custom default values. Any endpoint that does not have it's own specified values will use these
+apiLimiter.defaultLimit = 10;
+apiLimiter.defaultPeriod = 20000;
 
 const queryHandler = (req, res, next) => {
   pool.query(req.sqlQuery).then((r) => {
