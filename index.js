@@ -1,11 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const pg = require('pg');
-const { serverLimiter} = require('./limiters/serverLimiter');
+const { apiLimiter} = require('./limiters/apiLimiter');
 
-serverLimiter.limit = 10;
-serverLimiter.period = 10000;
-serverLimiter.resetCountAsync();
+apiLimiter.defaultLimit = 1000;
+apiLimiter.period = 60000;
 
 const app = express();
 // configs come from standard PostgreSQL env vars
@@ -18,16 +17,19 @@ const queryHandler = (req, res, next) => {
   }).catch(next);
 };
 
+apiLimiter.setEndPointLimits('/', 5, 5000);
+apiLimiter.resetCountAsync('/');
 app.get('/', (req, res) => {
-  console.log('this page has been hit ' + (serverLimiter.hitCount + 1) + ' times');
-  if (serverLimiter.evaluateCountAndHandleLimit(res)) {
+  console.log('this page has been hit ' + (apiLimiter['/'].count + 1) + ' times');
+  if (apiLimiter.evaluateCountAndHandleLimit('/', res)) {
   } else {
     res.send('Welcome to EQ Works 😎');
   }
 });
 
+apiLimiter.resetCountAsync('/events/hourly');
 app.get('/events/hourly', (req, res, next) => {
-  if (serverLimiter.evaluateCountAndHandleLimit(res)) {
+  if (apiLimiter.evaluateCountAndHandleLimit('/events/hourly', res)) {
   } else {
     req.sqlQuery = `
       SELECT date, hour, events
@@ -39,9 +41,10 @@ app.get('/events/hourly', (req, res, next) => {
   }
 }, queryHandler);
 
+apiLimiter.resetCountAsync('/events/daily');
 app.get('/events/daily', (req, res, next) => {
 
-  if (serverLimiter.evaluateCountAndHandleLimit(res)) {
+  if (apiLimiter.evaluateCountAndHandleLimit(res)) {
   } else {
     req.sqlQuery = `
       SELECT date, SUM(events) AS events
@@ -54,8 +57,9 @@ app.get('/events/daily', (req, res, next) => {
   }
 }, queryHandler);
 
+apiLimiter.resetCountAsync('/stats/hourly');
 app.get('/stats/hourly', (req, res, next) => {
-  if (serverLimiter.evaluateCountAndHandleLimit(res)) {
+  if (apiLimiter.evaluateCountAndHandleLimit(res)) {
   } else {
     req.sqlQuery = `
       SELECT date, hour, impressions, clicks, revenue
@@ -67,8 +71,9 @@ app.get('/stats/hourly', (req, res, next) => {
   }
 }, queryHandler);
 
+apiLimiter.resetCountAsync('/stats/hourly');
 app.get('/stats/daily', (req, res, next) => {
-  if (serverLimiter.evaluateCountAndHandleLimit(res)) {
+  if (apiLimiter.evaluateCountAndHandleLimit(res)) {
   } else {
     req.sqlQuery = `
       SELECT date,
@@ -84,8 +89,9 @@ app.get('/stats/daily', (req, res, next) => {
   }
 }, queryHandler);
 
+apiLimiter.resetCountAsync('/poi');
 app.get('/poi', (req, res, next) => {
-  if (serverLimiter.evaluateCountAndHandleLimit(res)) {
+  if (apiLimiter.evaluateCountAndHandleLimit(res)) {
   } else {
     req.sqlQuery = `
       SELECT *
