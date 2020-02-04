@@ -20,8 +20,7 @@ const apiLimiter = {
 
       if(this[endpoint].count > this[endpoint].limit) {
         res.status(439);
-        res.send('API is under heavy load. Please wait and try again.');
-        console.log('heavy load!');
+        res.send({error: 'API is under heavy load. Please wait and try again.'});
         return true;
       }
       return false;
